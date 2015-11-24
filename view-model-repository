@@ -1,0 +1,158 @@
+
+    public class FocusPicController : Controller
+    {
+        private FocusPicAPI _api;
+
+        public FocusPicController()
+        {
+            _api = new FakeFocusPicAPI();
+        }
+
+        //焦点图管理       
+        public ActionResult Index()
+        {
+            var pageList = new StaticPagedList<FocusPicListView>(GetFakeData(), 1, 10, 20);
+            return View(pageList);
+        }
+
+        private IEnumerable<FocusPicListView> GetFakeData()
+        {
+            return _api.FindAll().ToFocusPicListViews();
+        }
+
+        public ActionResult Create()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public ActionResult Create(FocusPicCreateView model)
+        {
+            _api.Add(model.ToPicListView());
+            return Redirect("/admin/focuspic/index");
+        }
+
+        public ActionResult Edit(string id)
+        {
+            var model = _api.Find(id).ToFocusPicEditView();
+            return View(model);
+        }
+
+        [HttpPost]
+        public ActionResult Edit(FocusPicEditView model)
+        {
+            _api.Save(model.ToPicListView());
+            return Redirect("/admin/focuspic/index");
+        }
+
+        public ActionResult Del(string id)
+        {
+            var model = _api.Find(id);
+            _api.Remove(model);
+            return Redirect("/admin/focuspic/index");
+        }
+    }
+
+    public class PicFocus
+    {
+        public string Id { get; set; }
+        public string Title { get; set; }
+        public string Url { get; set; }
+        public int Sort { get; set; }
+        public bool IsAtIndexPage { get; set; }
+    }
+
+    public static class FocusPicExtends
+    {
+        public static FocusPicListView ToFocusPicListView(this PicFocus model)
+        {
+            if (model == null) return null;
+            return new FocusPicListView { Id = model.Id, Title = model.Title, Url = model.Url, Sort = model.Sort, IsAtIndexPage = model.IsAtIndexPage ? "是" : "否" };
+        }
+
+        public static IEnumerable<FocusPicListView> ToFocusPicListViews(this IEnumerable<PicFocus> models)
+        {
+            return models.Select(m => m.ToFocusPicListView());
+        }
+
+        public static FocusPicEditView ToFocusPicEditView(this PicFocus model)
+        {
+            if (model == null) return null;
+            return new FocusPicEditView { Id = model.Id, Title = model.Title, Url = model.Url, Sort = model.Sort, IsAtIndexPage = model.IsAtIndexPage };
+        }
+
+        public static IEnumerable<FocusPicEditView> ToFocusPicEditViews(this IEnumerable<PicFocus> models)
+        {
+            return models.Select(m => m.ToFocusPicEditView());
+        }
+
+        public static PicFocus ToPicListView(this FocusPicEditView model)
+        {
+            if (model == null) return null;
+            return new PicFocus {Id = model.Id, Title = model.Title, Url = model.Url, Sort = model.Sort, IsAtIndexPage = model.IsAtIndexPage };
+        }
+
+        public static FocusPicCreateView ToFocusPicCreateView(this PicFocus model)
+        {
+            if (model == null) return null;
+            return new FocusPicCreateView { Title = model.Title, Url = model.Url, Sort = model.Sort, IsAtIndexPage = model.IsAtIndexPage };
+        }
+
+        public static IEnumerable<FocusPicCreateView> ToFocusPicCreateViews(this IEnumerable<PicFocus> models)
+        {
+            return models.Select(m => m.ToFocusPicCreateView());
+        }
+
+        public static PicFocus ToPicListView(this FocusPicCreateView model)
+        {
+            if (model == null) return null;
+            return new PicFocus { Title = model.Title, Url = model.Url, Sort = model.Sort, IsAtIndexPage = model.IsAtIndexPage };
+        }
+    }
+
+    public interface FocusPicAPI
+    {
+        IEnumerable<PicFocus> FindAll();
+        PicFocus Find(string id);
+        void Add(PicFocus model);
+        void Save(PicFocus model);
+        void Remove(PicFocus model);
+    }
+
+    public class FakeFocusPicAPI : FocusPicAPI
+    {
+        private static List<PicFocus> list = new List<PicFocus>();
+        private static int id = 1;
+
+        public IEnumerable<PicFocus> FindAll()
+        {
+            return list;
+        }
+
+        public PicFocus Find(string id)
+        {
+            return list.Where(m => m.Id == id).FirstOrDefault();
+        }
+
+        public void Add(PicFocus model)
+        {
+            model.Id = id.ToString();
+            id++;
+            list.Add(model);
+        }
+
+        public void Save(PicFocus model)
+        {
+            var themodel = this.Find(model.Id);
+
+            themodel.Title = model.Title;
+            themodel.Url = model.Url;
+            themodel.Sort = model.Sort;
+            themodel.IsAtIndexPage = model.IsAtIndexPage;
+        }
+
+        public void Remove(PicFocus model)
+        {
+            list.Remove(model);
+        }
+    }
